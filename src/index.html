@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<audio id="YourVideo"></audio>
+
+<button onclick="start()">старт</button>
+<button onclick="pause()">пауза</button>
+<script>
+    var playConfig = [
+        {
+            timeStart: 2, // время, через какое должна воспроизвестить мелодия (отностиельно запуска скрипта или окончания предыдущей мелодии)
+            src: "music/tanchiki.mp3", // путь до мелодии
+            offset: 3, // оффесет от начала самой мелодии (можно не указывать)
+            duration: 2 // продолжительность проигрыша самой мелодии (можно не указывать)
+        },
+        {
+            timeStart: 10,
+            src: "music/tanchiki.mp3",
+            // offset: 3,
+            // duration: 2
+        }
+    ];
+
+
+    var PPlayer = function (config) {
+        var startTime, next;
+        var _self = this;
+        var pause = false;
+        var media = document.getElementById("YourVideo");
+
+        function setNext() {
+            next = undefined;
+            pause = false;
+            if (config.length === 0) {
+                console.log('set next', next);
+                return;
+            }
+            next = config.splice(0, 1)[0];
+            console.log('set next', next);
+        }
+        setNext();
+
+        function schedule(nextStartTime) {
+            console.log('schedule on ', nextStartTime);
+            setTimeout(function() {
+                if (!next || pause) {
+                    console.log('fail play (paused)');
+                    return;
+                }
+                if ((new Date().getTime() - startTime.getTime())/1000 < next.timeStart) {
+                    console.log('fail play (after pause)');
+                    return;
+                }
+
+                console.log('play');
+
+                media.src = next.src;
+                media.play();
+
+                if (next.offset) {
+                    media.currentTime = next.offset;
+                }
+
+                if (next.duration) {
+                    setTimeout(function() {
+                        media.pause();
+                        setNext();
+                        _self.start();
+                    }, next.duration * 1000);
+                } else {
+                    media.onended = function () {
+                        setNext();
+                        _self.start();
+                    };
+                }
+            }, nextStartTime);
+        }
+
+        this.start = function () {
+            if (!next || pause) {
+                return;
+            }
+            startTime = new Date();
+            schedule(next.timeStart * 1000);
+        };
+
+        this.pause = function () {
+            if (!next) {
+                return;
+            }
+
+            if (pause) {
+                console.log('play');
+                next.offset = next.offset - (pause.getTime() - startTime.getTime())/1000;
+                pause = false;
+                this.start();
+            } else {
+                console.log('pause');
+                pause = new Date();
+            }
+        };
+    };
+
+    var p = new PPlayer(playConfig);
+    function start() {
+        p.start();
+    }
+    function pause() {
+        p.pause();
+    }
+</script>
+</body>
+</html>
